@@ -1,0 +1,12 @@
+<h1>GoDo</h1>
+
+<form ng-submit="addItem()" class="form-inline">
+  <div class="form-group">
+    <input type="text" ng-model="newItem.text" class="form-control">
+  </div>
+  <input type="submit" value="Add" class="btn btn-default">
+</form>
+
+<ul>
+  <li ng-repeat="item in items">{{item.text}} (<a ng-click="removeItem($index)">Remove</a>)</li>
+</ul>

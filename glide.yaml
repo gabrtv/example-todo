@@ -1,0 +1,5 @@
+package: main
+import:
+  - package: github.com/martini-contrib/binding
+  - package: github.com/martini-contrib/render
+  - package: github.com/oxtoacart/bpool
