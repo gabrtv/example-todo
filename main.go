@@ -39,17 +39,64 @@ func main() {
 }
 
 func redisClient() *redis.Client {
-	host := "localhost"
-	port := "6379"
-	if os.ExpandEnv("$EXAMPLE_TODO_REDIS_SERVICE_HOST") != "" {
-		host = os.ExpandEnv("$EXAMPLE_TODO_REDIS_SERVICE_HOST")
-		port = os.ExpandEnv("$EXAMPLE_TODO_REDIS_SERVICE_PORT")
+
+	// try to use redis cluster
+	if os.ExpandEnv("$TODO_REDIS_CLUSTER_SERVICE_HOST") != "" {
+		client, err := redisSentinelClient()
+		if err == nil {
+			return client
+		}
 	}
+
+	// try to use redis standalone
+	if os.ExpandEnv("$TODO_REDIS_STANDALONE_SERVICE_HOST") != "" {
+		client, err := redisStandaloneClient()
+		if err == nil {
+			return client
+		}
+	}
+
+	// return default client
+	return redis.NewTCPClient(&redis.Options{})
+}
+
+func redisSentinelClient() (*redis.Client, error) {
+	host := os.ExpandEnv("$TODO_REDIS_CLUSTER_SERVICE_HOST")
+	port := os.ExpandEnv("$TODO_REDIS_CLUSTER_SERVICE_PORT")
 	addr := fmt.Sprintf("%s:%s", host, port)
-	client := redis.NewTCPClient(&redis.Options{
-		Addr: addr,
+
+	// check env for master name override
+	var master string
+	if os.ExpandEnv("$REDIS_MASTER_NAME") != "" {
+		master = os.ExpandEnv("$REDIS_MASTER_NAME")
+	} else {
+		master = "mymaster"
+	}
+
+	client := redis.NewFailoverClient(&redis.FailoverOptions{
+		MasterName:    master,
+		SentinelAddrs: []string{addr},
 	})
-	return client
+	status := client.Ping()
+	_, err := status.Result()
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func redisStandaloneClient() (*redis.Client, error) {
+	host := os.ExpandEnv("$TODO_REDIS_STANDALONE_SERVICE_HOST")
+	port := os.ExpandEnv("$TODO_REDIS_STANDALONE_SERVICE_PORT")
+	addr := fmt.Sprintf("%s:%s", host, port)
+
+	client := redis.NewTCPClient(&redis.Options{Addr: addr})
+	status := client.Ping()
+	_, err := status.Result()
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
 }
 
 func Root(r render.Render) {

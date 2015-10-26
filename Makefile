@@ -18,7 +18,8 @@ DEIS_REGISTY ?= ${DEV_REGISTRY}
 # Kubernetes-specific information for RC, Service, and Image.
 RC := manifests/${SHORT_NAME}-rc.yaml
 SVC := manifests/${SHORT_NAME}-service.yaml
-REDIS_SVC := manifests/${SHORT_NAME}-redis-service.yaml
+REDIS_CLUSTER_SVC := manifests/${SHORT_NAME}-redis-cluster-service.yaml
+REDIS_STANDALONE_SVC := manifests/${SHORT_NAME}-redis-standalone-service.yaml
 
 # Docker image name
 IMAGE := deis/${SHORT_NAME}:${VERSION}
@@ -43,13 +44,15 @@ docker-push:
 deploy: kube-up
 
 kube-up:
-	kubectl create -f ${REDIS_SVC}
+	kubectl create -f ${REDIS_CLUSTER_SVC}
+	kubectl create -f ${REDIS_STANDALONE_SVC}
 	kubectl create -f ${SVC}
 	kubectl create -f ${RC}
 
 kube-down:
 	-kubectl delete -f ${RC}
 	-kubectl delete -f ${SVC}
-	-kubectl delete -f ${REDIS_SVC}
+	-kubectl delete -f ${REDIS_CLUSTER_SVC}
+	-kubectl delete -f ${REDIS_STANDALONE_SVC}
 
 .PHONY: all build docker-build docker-push kube-up kube-down deploy
